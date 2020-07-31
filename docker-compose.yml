@@ -1,0 +1,49 @@
+version: '3'
+
+services:
+  app:
+    build: ./
+    restart: always
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: music
+      MYSQL_USER: music
+      MYSQL_PASSWORD: password
+      BOT_PORT: 25565
+      MUSIC_PORT: 25566
+      BOT_USER_ID: ${BOT_USER_ID}
+      VERIFICATION_TOKEN: ${VERIFICATION_TOKEN}
+      ACCESS_TOKEN: ${ACCESS_TOKEN}
+      USER_ACCESS_TOKEN: ${USER_ACCESS_TOKEN}
+      TRAQ_API_BASE_PATH: ${TRAQ_API_BASE_PATH}
+      SKYWAY_APIKEY: ${SKYWAY_APIKEY}
+    depends_on:
+      - mysql
+    networks:
+      - internal
+    expose:
+      - 25565
+      - 25566
+    ports:
+      - "25565:25565"
+      - "25566:25566"
+
+  mysql:
+    image: mariadb:10.4.10
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: music
+    expose:
+      - 3306
+    ports:
+      - 3306:3306
+    networks:
+      - internal
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d
+
+networks:
+  internal:

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Skyway Client</title>
+</head>
+<body>
+<h1 id="title">Skyway Client</h1>
+<script type="text/javascript" src="https://cdn.webrtc.ecl.ntt.com/skyway-latest.js"></script>
+<script>
+    // https://github.com/skyway/skyway-peer-authentication-samples/blob/master/client/index.html
+    const peerId = '%s';
+    const apikey = '%s';
+    const roomName = '%s';
+    // instantiate with onDecode callback that fires when OggOpusFile data is decoded
+    const origin = "http://localhost:%s/serve/%s";
+
+    const audio = new Audio(origin);
+    audio.id = 'main-audio';
+    document.body.appendChild(audio);
+    const stream = audio.captureStream();
+    audio.oncanplay = () => {
+        audio.play();
+        connect();
+    };
+
+    let connected = false;
+    function connect() {
+        if (connected) return;
+        connected = true;
+        fetch('http://localhost:%s/authenticate', {
+            method: 'post',
+            body: JSON.stringify({ peerId })
+        })
+            .then(res => res.json())
+            .then(credential => {
+                const peer = new Peer(peerId, {
+                    key: apikey,
+                    credential: credential
+                });
+                if (!peer) {
+                    console.log("failed to create peer");
+                }
+                peer.on('open', () => {
+                    console.log("joining room...")
+                    const room = peer.joinRoom(roomName, {
+                        mode: 'sfu',
+                        stream
+                    });
+                    if (!room) {
+                        console.log("failed to join room");
+                    }
+                });
+                peer.on('error', () => {
+                    console.log("peer error")
+                });
+            }).catch(reason => console.log("Peer authentication failed", reason));
+    }
+</script>
+</body>
+</html>

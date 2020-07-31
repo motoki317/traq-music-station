@@ -1,0 +1,11 @@
+.git
+target
+.idea
+mysql
+
+.env
+.gitignore
+docker-compose.yml
+Dockerfile
+Makefile
+README.md
