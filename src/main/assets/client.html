@@ -17,15 +17,15 @@
     const audio = new Audio(origin);
     let stream = audio.captureStream();
     console.log("MediaStream id: " + stream.id);
+    // submit play(); via Selenium
+    audio.id = 'main-audio';
+    document.body.appendChild(audio);
 
     let played = false;
     audio.oncanplay = () => {
+        console.log("can play...");
         if (played) return;
         played = true;
-        console.log("can play...");
-        // submit audio.play(); via Selenium
-        audio.id = 'main-audio';
-        document.body.appendChild(audio);
         connect();
     };
 

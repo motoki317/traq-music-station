@@ -75,13 +75,13 @@ public class App implements Runnable, Bot {
     }
 
     public App(Properties properties, UpdaterFactory updaterFactory) throws IOException {
+        this.properties = properties;
+        this.logger = new ConsoleLogger(this.properties.logTimeZone);
         this.traqApi = new TraqApiImpl(
                 System.getenv("TRAQ_API_BASE_PATH"),
                 System.getenv("ACCESS_TOKEN")
         );
-        this.skywayApi = new SkywayApiImpl();
-        this.properties = properties;
-        this.logger = new ConsoleLogger(this.properties.logTimeZone);
+        this.skywayApi = new SkywayApiImpl(this.logger);
         this.responseManager = updaterFactory.getResponseManager();
         this.listeners = new ArrayList<>();
         this.musicServer = new MusicServerImpl(Integer.parseInt(System.getenv("MUSIC_PORT")), this);
