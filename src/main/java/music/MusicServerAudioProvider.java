@@ -97,7 +97,6 @@ public class MusicServerAudioProvider {
         page.setGranulePosition(this.granulePosition);
         page.setSeqNum(this.seq);
         page.setSerialNum(this.serialNum);
-        System.out.println("sending seq " + seq + ", granule position " + granulePosition);
         this.seq++;
 
         setCheckSum(page);

@@ -1,7 +1,6 @@
 package skyway;
 
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -32,8 +31,10 @@ public class SkywayApiImpl implements SkywayApi {
         WebDriverWait wait = new WebDriverWait(driver, 10);
         driver.setLogLevel(Level.ALL);
         driver.get(audioOrigin);
-        WebElement elt = wait.until(presenceOfElementLocated(By.id("title")));
-        elt.click();
+        var title = wait.until(presenceOfElementLocated(By.id("title")));
+        title.click();
+        wait.until(presenceOfElementLocated(By.id("main-audio")));
+        driver.executeScript("document.querySelector('#main-audio').play();");
 
         this.drivers.put(channelId, driver);
     }
