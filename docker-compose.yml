@@ -30,7 +30,7 @@ services:
       - "25566:25566"
 
   mysql:
-    image: mariadb:10.4.10
+    image: mariadb:10.4.13
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: password
