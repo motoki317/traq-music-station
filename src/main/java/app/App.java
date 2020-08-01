@@ -77,8 +77,7 @@ public class App implements Runnable, Bot {
     public App(Properties properties, UpdaterFactory updaterFactory) throws IOException {
         this.traqApi = new TraqApiImpl(
                 System.getenv("TRAQ_API_BASE_PATH"),
-                System.getenv("ACCESS_TOKEN"),
-                System.getenv("USER_ACCESS_TOKEN")
+                System.getenv("ACCESS_TOKEN")
         );
         this.skywayApi = new SkywayApiImpl();
         this.properties = properties;

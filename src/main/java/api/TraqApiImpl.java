@@ -23,22 +23,18 @@ public class TraqApiImpl implements TraqApi {
      * Creates new traQ API client.
      * @param basePath Base path. e.g. "http://q.trap.jp/api/v3"
      * @param accessToken Bot access token.
-     * @param userAccessToken User access token to access routes such as /webrtc and /webrtc/authenticate.
      */
-    public TraqApiImpl(@Nullable String basePath, String accessToken, String userAccessToken) {
+    public TraqApiImpl(@Nullable String basePath, String accessToken) {
         ApiClient client = new ApiClient();
-        ApiClient userClient = new ApiClient();
         if (basePath != null) {
             client.setBasePath(basePath);
-            userClient.setBasePath(basePath);
         }
         client.addDefaultHeader("Authorization", "Bearer " + accessToken);
-        userClient.addDefaultHeader("Authorization", "Bearer " + userAccessToken);
 
         this.messageApi = new MessageApi(client);
         this.channelApi = new ChannelApi(client);
         this.userApi = new UserApi(client);
-        this.webrtcApi = new WebrtcApi(userClient);
+        this.webrtcApi = new WebrtcApi(client);
     }
 
     private static void handleError(ApiException e) {
