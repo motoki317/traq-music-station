@@ -49,10 +49,13 @@ public class SkywayApiImpl implements SkywayApi {
                 // Interact with the document first before playing
                 var title = wait.until(presenceOfElementLocated(By.id("title")));
                 title.click();
-                WebDriverWait wait = new WebDriverWait(driver, Integer.MAX_VALUE);
-                wait.until(presenceOfElementLocated(By.id("main-audio")));
-                driver.executeScript("document.querySelector('#main-audio').play();");
+
+                WebDriverWait waitConnected = new WebDriverWait(driver, Integer.MAX_VALUE, 250);
+                // Wait until the Skyway API connected to the room
+                waitConnected.until(presenceOfElementLocated(By.id("connected-flag")));
+                var playButton = wait.until(presenceOfElementLocated(By.id("button-play")));
                 logger.log("[Selenium] Playing...");
+                playButton.click();
 
                 LogEntries logs = driver.manage().logs().get(LogType.BROWSER);
                 for (Iterator<LogEntry> iterator = logs.iterator(); iterator.hasNext() && this.isActive; ) {
@@ -76,7 +79,11 @@ public class SkywayApiImpl implements SkywayApi {
         this.logger.log("[Selenium] Closing channel " + channelID.toString() + "...");
 
         if (this.drivers.containsKey(channelID)) {
-            this.drivers.get(channelID).close();
+            var driver = this.drivers.get(channelID);
+            WebDriverWait wait = new WebDriverWait(driver, 60);
+            var disconnectButton = wait.until(presenceOfElementLocated(By.id("button-disconnect")));
+            disconnectButton.click();
+            driver.close();
             this.drivers.remove(channelID);
         }
         if (this.logs.containsKey(channelID)) {

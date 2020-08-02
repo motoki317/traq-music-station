@@ -6,6 +6,8 @@
 </head>
 <body>
 <h1 id="title">Skyway Client</h1>
+<button id="button-play" onclick="play()">Play</button>
+<button id="button-disconnect" onclick="disconnect()">Disconnect</button>
 <script type="text/javascript" src="https://cdn.webrtc.ecl.ntt.com/skyway-latest.js"></script>
 <script>
     // Ref: https://github.com/skyway/skyway-peer-authentication-samples/blob/master/client/index.html
@@ -29,11 +31,12 @@
         connect();
     };
 
-    let connected = false;
-    function connect() {
-        if (connected) return;
-        connected = true;
+    function play() {
+        console.log("playing...");
+        audio.play();
+    }
 
+    function connect() {
         console.log("[skyway] connecting...");
         fetch('http://localhost:%s/authenticate', {
             method: 'post',
@@ -49,19 +52,31 @@
                     console.log("[skyway] failed to create peer");
                 }
                 peer.on('open', () => {
-                    console.log("joining room...")
+                    console.log("joining room...");
                     const room = peer.joinRoom(roomName, {
                         mode: 'sfu',
-                        stream
+                        stream,
+                        videoReceiveEnabled: false,
+                        audioReceiveEnabled: false
                     });
                     if (!room) {
                         console.log("[skyway] failed to join room");
                     }
+                    // let Selenium know that we have connected to room to start playing
+                    const flagElt = document.createElement('div');
+                    flagElt.id = 'connected-flag';
+                    document.body.appendChild(flagElt);
                 });
-                peer.on('error', () => {
-                    console.log("[skyway] peer error")
+                peer.on('error', e => {
+                    console.log("[skyway] peer error", e);
                 });
             }).catch(reason => console.log("[skyway] Peer authentication failed", reason));
+    }
+    function disconnect() {
+        if (room) {
+            console.log("[skyway] Disconnecting from room...");
+            room.close();
+        }
     }
 </script>
 </body>
