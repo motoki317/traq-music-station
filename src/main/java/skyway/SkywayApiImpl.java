@@ -5,13 +5,11 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.logging.LogEntries;
-import org.openqa.selenium.logging.LogEntry;
 import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import utils.StoppableThread;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -19,13 +17,23 @@ import java.util.logging.Level;
 import static org.openqa.selenium.support.ui.ExpectedConditions.presenceOfElementLocated;
 
 public class SkywayApiImpl implements SkywayApi {
-    private final Map<UUID, ChromeDriver> drivers;
-    private final Map<UUID, StoppableThread> logs;
+    private static class Player {
+        private final ChromeDriver driver;
+        private final StoppableThread player;
+        private final StoppableThread log;
+
+        public Player(ChromeDriver driver, StoppableThread player, StoppableThread log) {
+            this.driver = driver;
+            this.player = player;
+            this.log = log;
+        }
+    }
+
+    private final Map<UUID, Player> players;
     private final Logger logger;
 
     public SkywayApiImpl(Logger logger) {
-        this.drivers = new HashMap<>();
-        this.logs = new HashMap<>();
+        this.players = new HashMap<>();
         this.logger = logger;
     }
 
@@ -42,7 +50,7 @@ public class SkywayApiImpl implements SkywayApi {
         driver.setLogLevel(Level.ALL);
         driver.get(audioOrigin);
 
-        StoppableThread log = new StoppableThread() {
+        StoppableThread player = new StoppableThread() {
             @Override
             public void run() {
                 Logger logger = SkywayApiImpl.this.logger;
@@ -56,39 +64,55 @@ public class SkywayApiImpl implements SkywayApi {
                 var playButton = wait.until(presenceOfElementLocated(By.id("button-play")));
                 logger.log("[Selenium] Playing...");
                 playButton.click();
+            }
 
+            @Override
+            protected void cleanUp() {}
+        };
+        StoppableThread log = new StoppableThread() {
+            @Override
+            public void run() {
+                Logger logger = SkywayApiImpl.this.logger;
                 LogEntries logs = driver.manage().logs().get(LogType.BROWSER);
-                for (Iterator<LogEntry> iterator = logs.iterator(); iterator.hasNext() && this.isActive; ) {
-                    LogEntry log = iterator.next();
-                    SkywayApiImpl.this.logger.log("[Selenium console] " + log.toString());
+                for (var log : logs) {
+                    logger.log("[Selenium console] " + log.toString());
                 }
             }
 
             @Override
             protected void cleanUp() {}
         };
+
+        player.start();
         log.start();
-        this.logs.put(channelId, log);
-        this.drivers.put(channelId, driver);
+        this.players.put(channelId, new Player(
+                driver,
+                player,
+                log
+        ));
     }
 
     @Override
     public synchronized void close(UUID channelID) {
-        if (!this.drivers.containsKey(channelID) && !this.logs.containsKey(channelID)) return;
+        if (!this.players.containsKey(channelID)) return;
 
         this.logger.log("[Selenium] Closing channel " + channelID.toString() + "...");
+        Player player = this.players.get(channelID);
+        this.players.remove(channelID);
 
-        if (this.drivers.containsKey(channelID)) {
-            var driver = this.drivers.get(channelID);
-            WebDriverWait wait = new WebDriverWait(driver, 60);
-            var disconnectButton = wait.until(presenceOfElementLocated(By.id("button-disconnect")));
-            disconnectButton.click();
-            driver.close();
-            this.drivers.remove(channelID);
+        // Press disconnect button via chrome driver
+        var driver = player.driver;
+        WebDriverWait wait = new WebDriverWait(driver, 60);
+        var disconnectButton = wait.until(presenceOfElementLocated(By.id("button-disconnect")));
+        disconnectButton.click();
+        driver.close();
+
+        // Terminate player (if not finished) and log loop
+        if (player.player.isAlive()) {
+            player.player.terminate();
         }
-        if (this.logs.containsKey(channelID)) {
-            this.logs.get(channelID).terminate();
-            this.logs.remove(channelID);
+        if (player.log.isAlive()) {
+            player.log.terminate();
         }
     }
 }

@@ -14,16 +14,22 @@ public class MusicServerAudioProvider {
     private long seq;
     private long granulePosition;
     private final long serialNum;
-    private int packetSeq;
     private OggPage page;
-    private static final int SEND_EVERY_PACKET = 10;
+    private int bufferedPackets;
+    private final int internalBufferPackets;
 
-    public MusicServerAudioProvider(AudioPlayer audioPlayer) {
+    public MusicServerAudioProvider(AudioPlayer audioPlayer, int internalBufferPackets) {
         this.audioPlayer = audioPlayer;
         this.seq = 2;
         this.granulePosition = 0;
         this.serialNum = new Random().nextLong();
-        this.packetSeq = 0;
+        this.page = OggPage.empty();
+        this.bufferedPackets = 0;
+        this.internalBufferPackets = internalBufferPackets;
+    }
+
+    public int internalBufferedPackets() {
+        return this.bufferedPackets;
     }
 
     public boolean canProvide() {
@@ -77,9 +83,6 @@ public class MusicServerAudioProvider {
     }
 
     public byte[] provide20MsAudio() {
-        if (this.packetSeq % SEND_EVERY_PACKET == 0) {
-            this.page = OggPage.empty();
-        }
         OpusPacket packet = OpusPackets.from(lastFrame.getData());
 
         var audioDataPacket = AudioDataPacket.empty();
@@ -88,12 +91,19 @@ public class MusicServerAudioProvider {
         this.page.addDataPacket(audioDataPacket.dump());
         // 48000 Hz / 1000 * 20ms = 960
         this.granulePosition += 960;
-        this.packetSeq++;
+        this.bufferedPackets++;
 
-        if (this.packetSeq % SEND_EVERY_PACKET != 0) {
+        if (this.bufferedPackets < this.internalBufferPackets) {
             return new byte[]{};
         }
 
+        byte[] data = dumpPage();
+        this.page = OggPage.empty();
+        this.bufferedPackets = 0;
+        return data;
+    }
+
+    private byte[] dumpPage() {
         page.setGranulePosition(this.granulePosition);
         page.setSeqNum(this.seq);
         page.setSerialNum(this.serialNum);
@@ -101,5 +111,14 @@ public class MusicServerAudioProvider {
 
         setCheckSum(page);
         return page.dump();
+    }
+
+    public byte[] flush() {
+        System.out.println("[Music Provider] flushed");
+        this.page.setEOS();
+        byte[] data = dumpPage();
+        this.page = OggPage.empty();
+        this.bufferedPackets = 0;
+        return data;
     }
 }

@@ -7,6 +7,7 @@
 <body>
 <h1 id="title">Skyway Client</h1>
 <button id="button-play" onclick="play()">Play</button>
+<button id="button-connect" onclick="connect()">Connect</button>
 <button id="button-disconnect" onclick="disconnect()">Disconnect</button>
 <script type="text/javascript" src="https://cdn.webrtc.ecl.ntt.com/skyway-latest.js"></script>
 <script>
@@ -16,28 +17,40 @@
     const roomName = '%s';
     const origin = "http://localhost:%s/serve/%s";
 
+    let room;
+
     const audio = new Audio(origin);
-    let stream = audio.captureStream();
-    console.log("MediaStream id: " + stream.id);
+    const stream = audio.captureStream();
+
+    console.log("[audio] MediaStream id: " + stream.id);
     // submit play(); via Selenium
     audio.id = 'main-audio';
     document.body.appendChild(audio);
 
-    let played = false;
+    const once = f => {
+        let done = false;
+        return () => {
+            if (done) return;
+            done = true;
+            f();
+        };
+    };
+
+    const connectOnce = once(connect);
     audio.oncanplay = () => {
-        console.log("can play...");
-        if (played) return;
-        played = true;
-        connect();
+        console.log("[audio] Can play...");
+        play();
+        // Skyway has to be connected AFTER the stream has input?
+        setTimeout(connectOnce, 250);
     };
 
     function play() {
-        console.log("playing...");
+        console.log("[audio] Playing...");
         audio.play();
     }
 
     function connect() {
-        console.log("[skyway] connecting...");
+        console.log("[skyway] Connecting...");
         fetch('http://localhost:%s/authenticate', {
             method: 'post',
             body: JSON.stringify({ peerId })
@@ -52,16 +65,15 @@
                     console.log("[skyway] failed to create peer");
                 }
                 peer.on('open', () => {
-                    console.log("joining room...");
-                    const room = peer.joinRoom(roomName, {
+                    console.log("[skyway] Joining room...");
+                    room = peer.joinRoom(roomName, {
                         mode: 'sfu',
-                        stream,
-                        videoReceiveEnabled: false,
-                        audioReceiveEnabled: false
+                        stream
                     });
                     if (!room) {
                         console.log("[skyway] failed to join room");
                     }
+                    console.log("[skyway] Successfully joined room!");
                     // let Selenium know that we have connected to room to start playing
                     const flagElt = document.createElement('div');
                     flagElt.id = 'connected-flag';
@@ -76,6 +88,7 @@
         if (room) {
             console.log("[skyway] Disconnecting from room...");
             room.close();
+            console.log("[skyway] Disconnected");
         }
     }
 </script>
