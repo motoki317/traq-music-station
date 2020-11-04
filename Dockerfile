@@ -13,14 +13,17 @@ RUN mvn package -D skipTests
 
 FROM openjdk:11-jre-slim AS runtime
 
-RUN apt-get update && apt-get install -y wget unzip
+RUN apt-get update && \
+    apt-get install -y wget unzip
 # install google chrome
-RUN wget -O /tmp/google-chrome-stable_current_amd64.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-RUN apt-get install -y /tmp/google-chrome-stable_current_amd64.deb
-# install chrome driver
-RUN wget -O /tmp/chromedriver_linux64.zip https://chromedriver.storage.googleapis.com/86.0.4240.22/chromedriver_linux64.zip
-RUN unzip /tmp/chromedriver_linux64.zip -d /tmp/google-chrome && rm /tmp/chromedriver_linux64.zip
-RUN mv /tmp/google-chrome/chromedriver /usr/bin/chromedriver
+RUN wget -O /tmp/google-chrome-stable_current_amd64.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt-get install -y /tmp/google-chrome-stable_current_amd64.deb && \
+    rm /tmp/google-chrome-stable_current_amd64.deb
+# download chrome driver
+RUN wget -O /tmp/chromedriver_linux64.zip https://chromedriver.storage.googleapis.com/86.0.4240.22/chromedriver_linux64.zip && \
+    unzip /tmp/chromedriver_linux64.zip -d /tmp/google-chrome && \
+    rm /tmp/chromedriver_linux64.zip && \
+    mv /tmp/google-chrome/chromedriver /usr/bin/chromedriver
 
 WORKDIR /usr/src/app
 
