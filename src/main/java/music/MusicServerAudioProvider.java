@@ -4,9 +4,9 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame;
 import org.chenliang.oggus.ogg.OggPage;
 import org.chenliang.oggus.opus.*;
+import org.gagravarr.ogg.CRCUtils;
 
 import java.util.Random;
-import java.util.zip.CRC32;
 
 public class MusicServerAudioProvider {
     private final AudioPlayer audioPlayer;
@@ -38,9 +38,8 @@ public class MusicServerAudioProvider {
     }
 
     private static void setCheckSum(OggPage page) {
-        CRC32 crc32 = new CRC32();
-        crc32.update(page.dump());
-        page.setCheckSum((int) crc32.getValue());
+        int sum = CRCUtils.getCRC(page.dump());
+        page.setCheckSum(sum);
     }
 
     /**
