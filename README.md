@@ -7,7 +7,6 @@ Libraries used (see pom.xml for full dependencies):
 - [Selenium](https://www.selenium.dev/)
 - [traq4j](https://github.com/motoki317/traq4j), [traq-bot4j](https://github.com/motoki317/traq-bot4j)
 - [oggus](https://github.com/leonfancy/oggus)
-- 
 
 ## Features
 
@@ -15,4 +14,3 @@ Some features are not complete due to traQ server not expecting
 bots to join WebRTC rooms.
 
 - Bots cannot access /ws API route to update their WebRTC states.
-- Bots cannot access GET /webrtc, POST /webrtc/authenticate API routes, so it currently uses privileged user access tokens.
