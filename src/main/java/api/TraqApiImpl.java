@@ -86,7 +86,7 @@ public class TraqApiImpl implements TraqApi {
         if (this.usersCache == null) {
             List<User> users;
             try {
-                users = userApi.getUsers(false);
+                users = userApi.getUsers(false, null);
             } catch (ApiException e) {
                 handleError(e);
                 return null;
