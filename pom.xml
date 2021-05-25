@@ -17,6 +17,11 @@
 
     <repositories>
         <repository>
+            <id>central</id>
+            <name>central</name>
+            <url>https://repo.maven.apache.org/maven2/</url>
+        </repository>
+        <repository>
             <id>dv8tion</id>
             <name>m2-dv8tion</name>
             <url>https://m2.dv8tion.net/releases</url>
