@@ -90,13 +90,6 @@
             <artifactId>oggus</artifactId>
             <version>1.2.0</version>
         </dependency>
-        <!-- For calculating checksum with CRCUtils.java -->
-        <!-- https://mvnrepository.com/artifact/org.gagravarr/vorbis-java-core -->
-        <dependency>
-            <groupId>org.gagravarr</groupId>
-            <artifactId>vorbis-java-core</artifactId>
-            <version>0.8</version>
-        </dependency>
     </dependencies>
 
     <build>
