@@ -4,7 +4,6 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame;
 import org.chenliang.oggus.ogg.OggPage;
 import org.chenliang.oggus.opus.*;
-import org.gagravarr.ogg.CRCUtils;
 
 import java.util.Random;
 
@@ -37,11 +36,6 @@ public class MusicServerAudioProvider {
         return lastFrame != null;
     }
 
-    private static void setCheckSum(OggPage page) {
-        int sum = CRCUtils.getCRC(page.dump());
-        page.setCheckSum(sum);
-    }
-
     /**
      * Generates bitstream for the ID Header and Comment Header for OGG Opus stream.
      * Should be called AFTER the first true returned by {@link #canProvide()},
@@ -61,7 +55,6 @@ public class MusicServerAudioProvider {
         headerPage.setBOS();
         headerPage.setSerialNum(serialNum);
 
-        setCheckSum(headerPage);
         return headerPage.dump();
     }
 
@@ -77,7 +70,6 @@ public class MusicServerAudioProvider {
         commentPage.setSeqNum(1);
         commentPage.setSerialNum(serialNum);
 
-        setCheckSum(commentPage);
         return commentPage.dump();
     }
 
@@ -108,7 +100,6 @@ public class MusicServerAudioProvider {
         page.setSerialNum(this.serialNum);
         this.seq++;
 
-        setCheckSum(page);
         return page.dump();
     }
 
