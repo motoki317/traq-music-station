@@ -41,7 +41,7 @@ public class SkywayApiImpl implements SkywayApi {
     public synchronized void joinChannel(String audioOrigin, UUID channelId) {
         this.logger.log("[Selenium] Joining channel " + channelId.toString() + "...");
         ChromeOptions options = new ChromeOptions()
-                .setBinary("/usr/bin/google-chrome")
+                .setBinary("/usr/bin/chromium")
                 .addArguments("--no-sandbox")
                 .addArguments("--disable-dev-shm-usage")
                 .setHeadless(true);
