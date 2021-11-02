@@ -7,8 +7,7 @@ COPY ./pom.xml ./
 RUN --mount=type=cache,target=/root/.m2 mvn -B dependency:resolve
 
 COPY ./src ./src
-# https://stackoverflow.com/questions/61301818/java-failed-to-exec-spawn-helper-error-since-moving-to-java-14-on-linux
-RUN --mount=type=cache,target=/root/.m2 mvn -B package -D skipTests -D jdk.lang.Process.launchMechanism=vfork
+RUN --mount=type=cache,target=/root/.m2 mvn -B package -D skipTests
 
 FROM openjdk:17-slim AS runtime
 
