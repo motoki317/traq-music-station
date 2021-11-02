@@ -1,4 +1,4 @@
-FROM maven:3.8.3-eclipse-temurin-17 AS build
+FROM maven:3.8.3-openjdk-17-slim AS build
 
 WORKDIR /usr/src/app
 
@@ -7,7 +7,8 @@ COPY ./pom.xml ./
 RUN --mount=type=cache,target=/root/.m2 mvn -B dependency:resolve
 
 COPY ./src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn -B package -D skipTests
+# https://stackoverflow.com/questions/61301818/java-failed-to-exec-spawn-helper-error-since-moving-to-java-14-on-linux
+RUN --mount=type=cache,target=/root/.m2 mvn -B package -D skipTests -D jdk.lang.Process.launchMechanism=vfork
 
 FROM openjdk:17-slim AS runtime
 
