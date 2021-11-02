@@ -1,11 +1,12 @@
 package music.handlers;
 
 import api.TraqApi;
-import app.Bot;
+import app.App;
+import app.Responder;
 import com.github.motoki317.traq4j.model.Message;
 import com.github.motoki317.traq4j.model.User;
-import com.github.motoki317.traq_bot.Responder;
-import com.github.motoki317.traq_bot.model.MessageCreatedEvent;
+import com.github.motoki317.traq_ws_bot.WebRTCState;
+import com.github.motoki317.traq_ws_bot.model.MessageCreatedEvent;
 import com.sedmelluq.discord.lavaplayer.player.AudioLoadResultHandler;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
@@ -24,6 +25,7 @@ import log.Logger;
 import music.*;
 import music.exception.DuplicateTrackException;
 import music.exception.QueueFullException;
+import org.apache.commons.lang.RandomStringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import skyway.SkywayApi;
@@ -39,6 +41,7 @@ import java.util.stream.Collectors;
 import static commands.BotCommand.respond;
 import static commands.BotCommand.respondError;
 import static music.MusicUtils.formatLength;
+import static music.MusicUtils.getVoiceChannelByID;
 
 public class MusicPlayHandler {
     private static final UUID NullUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
@@ -48,6 +51,7 @@ public class MusicPlayHandler {
     private final AudioPlayerManager playerManager;
     private final String botUserId;
 
+    private final App app;
     private final MusicServer musicServer;
     private final TraqApi traqApi;
     private final SkywayApi skywayApi;
@@ -57,32 +61,35 @@ public class MusicPlayHandler {
     private final MusicInterruptedChannelRepository interruptedGuildRepository;
     private final ResponseManager responseManager;
 
-    public MusicPlayHandler(Bot bot, Map<String, MusicState> states, AudioPlayerManager playerManager) {
+    public MusicPlayHandler(App app, Map<String, MusicState> states, AudioPlayerManager playerManager) {
         this.states = states;
         this.playerManager = playerManager;
         this.botUserId = System.getenv("BOT_USER_ID");
-        this.musicServer = bot.getMusicServer();
-        this.traqApi = bot.getTraqApi();
-        this.skywayApi = bot.getSkywayApi();
-        this.logger = bot.getLogger();
-        this.musicSettingRepository = bot.getDatabase().getMusicSettingRepository();
-        this.musicQueueRepository = bot.getDatabase().getMusicQueueRepository();
-        this.interruptedGuildRepository = bot.getDatabase().getMusicInterruptedChannelRepository();
-        this.responseManager = bot.getResponseManager();
+        this.app = app;
+        this.musicServer = app.getMusicServer();
+        this.traqApi = app.getTraqApi();
+        this.skywayApi = app.getSkywayApi();
+        this.logger = app.getLogger();
+        this.musicSettingRepository = app.getDatabase().getMusicSettingRepository();
+        this.musicQueueRepository = app.getDatabase().getMusicQueueRepository();
+        this.interruptedGuildRepository = app.getDatabase().getMusicInterruptedChannelRepository();
+        this.responseManager = app.getResponseManager();
     }
 
     /**
      * Retrieves voice channel the user is in.
+     *
      * @param userId User UUID
      * @return Channel UUID. null if not found.
      */
     @Nullable
-    private UUID getVoiceChannel(@NotNull UUID userId) {
+    private QallState getVoiceChannel(@NotNull UUID userId) {
         return MusicUtils.getVoiceChannel(this.traqApi, userId);
     }
 
     /**
      * Get music setting for the channel.
+     *
      * @param channelId Channel ID.
      * @return Music setting. Default setting if not found.
      */
@@ -117,13 +124,18 @@ public class MusicPlayHandler {
             );
             // connect with skyway
             this.skywayApi.joinChannel(next, vcId);
+            // Sync WebRTC state with traQ server
+            QallState qs = getVoiceChannelByID(traqApi, vcId);
+            String sessionId = qs == null || qs.sessionId().equals("") ? newQallSessionId() : qs.sessionId();
+            this.app.sendWebRTCState(vcId.toString(), new WebRTCState("joined", sessionId));
         }
     }
 
     /**
      * Prepares music state for the channel.
      * (Sets up audio players, but does not join the VC)
-     * @param vcId Voice channel id.
+     *
+     * @param vcId          Voice channel id.
      * @param textChannelId Text channel id.
      * @return Music state
      */
@@ -176,7 +188,7 @@ public class MusicPlayHandler {
         }
 
         this.logger.log(String.format("Preparing music player (%s) for voice channel %s, text channel %s",
-                states.size(), vcId.toString(), textChannelId.toString()
+                states.size(), vcId, textChannelId
         ));
 
         enqueueSavedQueue(vcId, textChannelId, state);
@@ -185,9 +197,10 @@ public class MusicPlayHandler {
 
     /**
      * Enqueues all saved previous queue.
-     * @param vcId Voice channel ID.
+     *
+     * @param vcId          Voice channel ID.
      * @param textChannelId Text channel ID.
-     * @param state State.
+     * @param state         State.
      */
     private void enqueueSavedQueue(UUID vcId, UUID textChannelId, MusicState state) {
         List<MusicQueueEntry> queue = this.musicQueueRepository.getGuildMusicQueue(vcId.toString());
@@ -241,7 +254,7 @@ public class MusicPlayHandler {
 
                 @Override
                 public void loadFailed(FriendlyException e) {
-                    e.getMessage();
+                    respond(traqApi, textChannelId, "Track load failed: " + e.getMessage());
                 }
             });
             futures.add(f);
@@ -269,7 +282,7 @@ public class MusicPlayHandler {
 
     private void sendFinishEnqueueSaved(Message message, MusicState state, List<Future<Void>> futures,
                                         CompletableFuture<Void> all, String desc) {
-        all.thenRun(() -> this.traqApi.editMessage(message.getId(),desc + "\nFinished loading!"));
+        all.thenRun(() -> this.traqApi.editMessage(message.getId(), desc + "\nFinished loading!"));
 
         state.setOnStopLoadingCache(() -> {
             if (all.isDone()) {
@@ -286,47 +299,60 @@ public class MusicPlayHandler {
 
     /**
      * Tries to connect to the VC the user is in.
+     *
      * @param event Event.
      * @return {@code true} if success.
      */
     private boolean connect(MessageCreatedEvent event) {
-        UUID vcId = getVoiceChannel(UUID.fromString(event.getMessage().getUser().getId()));
-        if (vcId == null) {
+        QallState qs = getVoiceChannel(UUID.fromString(event.message().user().id()));
+        if (qs == null) {
             respond(this.traqApi, event,
                     "Please join in a voice channel before you use this command!");
             return false;
         }
 
         // Prepare whole music logic state
-        MusicState state = prepareMusicState(vcId, UUID.fromString(event.getMessage().getChannelId()));
+        MusicState state = prepareMusicState(qs.channelId(), UUID.fromString(event.message().channelId()));
 
         // setup music player
         String next = this.musicServer.serve(
                 this.botUserId,
                 state.getPlayer(),
-                vcId
+                qs.channelId()
         );
         // connect with skyway
-        this.skywayApi.joinChannel(next, vcId);
+        this.skywayApi.joinChannel(next, qs.channelId());
+        // Sync WebRTC state with traQ server
+        String sessionId = qs.sessionId().equals("") ? newQallSessionId() : qs.sessionId();
+        this.app.sendWebRTCState(qs.channelId().toString(), new WebRTCState("joined", sessionId));
 
         return true;
     }
 
     /**
+     * Generates a new random qall session id.
+     * @return New Qall session id.
+     */
+    private static String newQallSessionId() {
+        return "qall-" + RandomStringUtils.randomAlphanumeric(10);
+    }
+
+    /**
      * Retrieves music state if the channel already has a music player set up,
      * or creates a new state if the channel doesn't.
+     *
      * @param event Event.
      * @return Music state. null if failed to join in a vc.
      */
     @Nullable
     private MusicState getStateOrConnect(MessageCreatedEvent event) {
-        UUID vcId = getVoiceChannel(UUID.fromString(event.getMessage().getUser().getId()));
-        if (vcId == null) {
+        QallState qs = getVoiceChannel(UUID.fromString(event.message().user().id()));
+        if (qs == null) {
             return null;
         }
 
         synchronized (states) {
-            MusicState state = states.getOrDefault(vcId.toString(), null);
+            MusicState state = states.getOrDefault(qs.channelId().toString(), null);
             if (state != null) {
                 return state;
             }
@@ -334,17 +360,18 @@ public class MusicPlayHandler {
             if (!res) {
                 return null;
             }
-            return states.get(vcId.toString());
+            return states.get(qs.channelId().toString());
         }
     }
 
     /**
      * Handles "join" command.
+     *
      * @param event Event.
      */
     public void handleJoin(MessageCreatedEvent event, Responder res) {
         synchronized (states) {
-            if (states.containsKey(event.getMessage().getChannelId())) {
+            if (states.containsKey(event.message().channelId())) {
                 respond(this.traqApi, event, "This channel already has a music player set up!");
                 return;
             }
@@ -359,20 +386,21 @@ public class MusicPlayHandler {
 
     /**
      * handles "leave" command.
-     * @param event Event.
-     * @param res Responder.
+     *
+     * @param event     Event.
+     * @param res       Responder.
      * @param saveQueue {@code true} if the bot should save the current queue, and use it next time.
      */
     public void handleLeave(@NotNull MessageCreatedEvent event, Responder res, boolean saveQueue) {
-        UUID vcId = getVoiceChannel(UUID.fromString(event.getMessage().getUser().getId()));
-        if (vcId == null) {
+        QallState qs = getVoiceChannel(UUID.fromString(event.message().user().id()));
+        if (qs == null) {
             respond(res, "You're not in a voice channel.");
             return;
         }
 
         MusicState state;
         synchronized (states) {
-            state = states.getOrDefault(vcId.toString(), null);
+            state = states.getOrDefault(qs.channelId().toString(), null);
         }
         if (state == null) {
             respond(res, "This channel doesn't seem to have a music player set up.");
@@ -380,14 +408,14 @@ public class MusicPlayHandler {
         }
 
         try {
-            this.shutdownPlayer(saveQueue, vcId, state);
+            this.shutdownPlayer(saveQueue, qs.channelId(), state);
         } catch (RuntimeException e) {
             respondError(res, e.getMessage());
             return;
         }
 
         synchronized (states) {
-            states.remove(vcId.toString());
+            states.remove(qs.channelId().toString());
         }
 
         respond(res, String.format("Player stopped. (%s)",
@@ -396,9 +424,10 @@ public class MusicPlayHandler {
 
     /**
      * Shuts down the music player for the guild.
+     *
      * @param saveQueue If the bot should save the current queue.
-     * @param vcId Voice channel ID.
-     * @param state Music state.
+     * @param vcId      Voice channel ID.
+     * @param state     Music state.
      * @throws RuntimeException If something went wrong.
      */
     void shutdownPlayer(boolean saveQueue, UUID vcId, MusicState state) throws RuntimeException {
@@ -416,6 +445,8 @@ public class MusicPlayHandler {
         this.musicServer.stop(vcId);
         // Try to disconnect from the voice channel
         this.skywayApi.close(vcId);
+        // Sync WebRTC state with traQ server
+        this.app.sendWebRTCState(vcId.toString());
 
         // Save the current queue
         boolean saveResult = !saveQueue || saveQueue(vcId, queue);
@@ -437,7 +468,8 @@ public class MusicPlayHandler {
 
     /**
      * Saves the current queue.
-     * @param vcId Voice channel ID.
+     *
+     * @param vcId  Voice channel ID.
      * @param queue Music queue.
      * @return {@code true} if success.
      */
@@ -469,11 +501,12 @@ public class MusicPlayHandler {
 
     /**
      * Handles "play" command.
-     * @param event Event.
-     * @param res Responder.
-     * @param args Command arguments.
+     *
+     * @param event   Event.
+     * @param res     Responder.
+     * @param args    Command arguments.
      * @param playAll If the bot should enqueue all the search results directly.
-     * @param site Which site to search from.
+     * @param site    Which site to search from.
      */
     public void handlePlay(MessageCreatedEvent event, Responder res, String[] args, boolean playAll, SearchSite site) {
         if (args.length <= 2) {
@@ -549,15 +582,16 @@ public class MusicPlayHandler {
         desc.add("");
         desc.add("c: Cancel");
 
-        String msg = String.format("%s, Select a song!\n" +
-                "%s\n" +
-                "Type '1' ~ '%s', 'all' to play all, or 'c' to cancel.",
-                event.getMessage().getUser().getName(),
+        String msg = String.format("""
+                        %s, Select a song!
+                        %s
+                        Type '1' ~ '%s', 'all' to play all, or 'c' to cancel.""",
+                event.message().user().name(),
                 String.join("\n", desc),
                 max);
-        UUID channelId = UUID.fromString(event.getMessage().getChannelId());
+        UUID channelId = UUID.fromString(event.message().channelId());
         respond(this.traqApi, channelId, msg, message -> {
-            UUID userId = UUID.fromString(event.getMessage().getUser().getId());
+            UUID userId = UUID.fromString(event.message().user().id());
             Response handler = new Response(channelId, userId,
                     response -> chooseTrack(event, res, state, tracks, response)
             );
@@ -567,7 +601,7 @@ public class MusicPlayHandler {
 
     private boolean chooseTrack(MessageCreatedEvent event, Responder res,
                                 MusicState state, List<AudioTrack> tracks, MessageCreatedEvent response) {
-        String msg = response.getMessage().getPlainText();
+        String msg = response.message().plainText();
         if ("all".equalsIgnoreCase(msg)) {
             this.enqueueMultipleSongs(event, res, state, tracks);
             return true;
@@ -593,7 +627,7 @@ public class MusicPlayHandler {
     }
 
     private void enqueueSong(MessageCreatedEvent event, Responder res, MusicState state, AudioTrack audioTrack) {
-        UUID userId = UUID.fromString(event.getMessage().getUser().getId());
+        UUID userId = UUID.fromString(event.message().user().id());
         boolean toShowQueuedMsg = !state.getCurrentQueue().getQueue().isEmpty();
         int queueSize = state.getCurrentQueue().getQueue().size();
         long remainingLength = state.getRemainingLength();
@@ -607,11 +641,12 @@ public class MusicPlayHandler {
 
         if (toShowQueuedMsg) {
             AudioTrackInfo info = audioTrack.getInfo();
-            respond(res, String.format("✔ Queued 1 song.\n" +
-                    "[%s](%s)\n" +
-                    "Length: %s\n" +
-                    "Position in queue: %s\n" +
-                    "Estimated time until playing: %s",
+            respond(res, String.format("""
+                            ✔ Queued 1 song.
+                            [%s](%s)
+                            Length: %s
+                            Position in queue: %s
+                            Estimated time until playing: %s""",
                     "".equals(info.title) ? "(No title)" : info.title, info.uri,
                     info.isStream ? "LIVE" : formatLength(info.length),
                     queueSize,
@@ -620,7 +655,7 @@ public class MusicPlayHandler {
     }
 
     private void enqueueMultipleSongs(MessageCreatedEvent event, Responder res, MusicState state, List<AudioTrack> tracks) {
-        UUID userId = UUID.fromString(event.getMessage().getUser().getId());
+        UUID userId = UUID.fromString(event.message().user().id());
         long remainingLength = state.getRemainingLength();
         int queueSize = state.getCurrentQueue().getQueue().size();
 
@@ -635,10 +670,11 @@ public class MusicPlayHandler {
             }
         }
 
-        respond(res, String.format("✔ Queued %s song%s.\n" +
-                "Length: %s\n" +
-                "Position in queue: %s\n" +
-                "Estimated time until playing: %s",
+        respond(res, String.format("""
+                        ✔ Queued %s song%s.
+                        Length: %s
+                        Position in queue: %s
+                        Estimated time until playing: %s""",
                 success, success == 1 ? "" : "s",
                 formatLength(queuedLength),
                 queueSize,

@@ -1,8 +1,8 @@
 package commands;
 
-import app.Bot;
-import com.github.motoki317.traq_bot.Responder;
-import com.github.motoki317.traq_bot.model.MessageCreatedEvent;
+import app.App;
+import app.Responder;
+import com.github.motoki317.traq_ws_bot.model.MessageCreatedEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -12,14 +12,14 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 public class Help extends GenericCommand {
-    private final Bot bot;
+    private final App app;
 
     private final List<BotCommand> commands;
     private final Map<String, BotCommand> commandNameMap;
     private final Supplier<Integer> maxArgumentsLength;
 
-    public Help(Bot bot, List<BotCommand> commands, Map<String, BotCommand> commandNameMap, Supplier<Integer> maxArgumentsLength) {
-        this.bot = bot;
+    public Help(App app, List<BotCommand> commands, Map<String, BotCommand> commandNameMap, Supplier<Integer> maxArgumentsLength) {
+        this.app = app;
         this.commands = commands;
         this.commandNameMap = commandNameMap;
         this.maxArgumentsLength = maxArgumentsLength;
@@ -86,7 +86,7 @@ public class Help extends GenericCommand {
         for (int i = min; i < max; i++) {
             BotCommand cmd = this.commands.get(i);
             ret.add(String.format("### %s\n" +
-                    "%s", this.bot.getProperties().prefix + cmd.syntax(),
+                    "%s", this.app.getProperties().prefix + cmd.syntax(),
                     cmd.shortHelp()));
         }
 

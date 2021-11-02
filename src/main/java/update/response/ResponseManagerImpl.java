@@ -1,6 +1,6 @@
 package update.response;
 
-import com.github.motoki317.traq_bot.model.MessageCreatedEvent;
+import com.github.motoki317.traq_ws_bot.model.MessageCreatedEvent;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -43,14 +43,14 @@ public class ResponseManagerImpl implements ResponseManager {
 
     @Override
     public void handle(MessageCreatedEvent event) {
-        UUID userId = UUID.fromString(event.getMessage().getUser().getId());
+        UUID userId = UUID.fromString(event.message().user().id());
 
         synchronized (this.lock) {
             if (!this.waitingResponses.containsKey(userId)) {
                 return;
             }
 
-            UUID channelId = UUID.fromString(event.getMessage().getChannelId());
+            UUID channelId = UUID.fromString(event.message().channelId());
 
             List<Response> responses = this.waitingResponses.get(userId);
             for (Iterator<Response> it = responses.iterator(); it.hasNext(); ) {

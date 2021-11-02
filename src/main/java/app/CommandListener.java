@@ -1,7 +1,6 @@
 package app;
 
-import com.github.motoki317.traq_bot.Responder;
-import com.github.motoki317.traq_bot.model.MessageCreatedEvent;
+import com.github.motoki317.traq_ws_bot.model.MessageCreatedEvent;
 import commands.*;
 import db.model.commandLog.CommandLog;
 import db.repository.base.CommandLogRepository;
@@ -32,30 +31,30 @@ public class CommandListener implements EventListener {
 
     private final CommandLogRepository commandLogRepository;
 
-    CommandListener(Bot bot) {
+    CommandListener(App app) {
         this.commands = new ArrayList<>();
         this.commandNameMap = new HashMap<>();
         this.maxArgumentsLength = 1;
 
         this.threadPool = Executors.newFixedThreadPool(5);
 
-        this.logger = bot.getLogger();
+        this.logger = app.getLogger();
         this.spamChecker = new SpamChecker();
-        this.defaultPrefix = bot.getProperties().prefix;
+        this.defaultPrefix = app.getProperties().prefix;
 
-        this.commandLogRepository = bot.getDatabase().getCommandLogRepository();
+        this.commandLogRepository = app.getDatabase().getCommandLogRepository();
 
-        registerCommands(bot);
+        registerCommands(app);
     }
 
     @SuppressWarnings({"OverlyLongMethod", "OverlyCoupledMethod"})
-    private void registerCommands(Bot bot) {
-        addCommand(new Help(bot, this.commands, this.commandNameMap, () -> this.maxArgumentsLength));
+    private void registerCommands(App app) {
+        addCommand(new Help(app, this.commands, this.commandNameMap, () -> this.maxArgumentsLength));
         addCommand(new CommandAliases(this.commandNameMap, () -> this.maxArgumentsLength));
         addCommand(new Ping());
         addCommand(new Info());
 
-        addCommand(new Music(bot));
+        addCommand(new Music(app));
     }
 
     private void addCommand(BotCommand command) {
@@ -76,7 +75,7 @@ public class CommandListener implements EventListener {
     @Override
     public void onMessageReceived(@NotNull MessageCreatedEvent event, @NotNull Responder res) {
         // Check prefix
-        String rawMessage = event.getMessage().getPlainText();
+        String rawMessage = event.message().plainText();
         if (!rawMessage.startsWith(defaultPrefix)) return;
 
         String commandMessage = rawMessage.substring(defaultPrefix.length());
@@ -131,9 +130,9 @@ public class CommandListener implements EventListener {
      */
     private void addCommandLog(String kind, String full, MessageCreatedEvent event) {
         Date createdAt = new Date(
-                event.getBasePayload().getEventTime().atOffset(ZoneOffset.UTC).toEpochSecond() * 1000
+                event.basePayload().eventTime().atOffset(ZoneOffset.UTC).toEpochSecond() * 1000
         );
-        CommandLog entity = new CommandLog(kind, full, event.getMessage().getChannelId(), event.getMessage().getUser().getId(), createdAt);
+        CommandLog entity = new CommandLog(kind, full, event.message().channelId(), event.message().user().id(), createdAt);
         if (!this.commandLogRepository.create(entity)) {
             this.logger.log("Failed to log command to db.");
         }

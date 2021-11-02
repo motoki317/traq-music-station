@@ -1,7 +1,7 @@
 package http;
 
 import api.TraqApi;
-import app.Bot;
+import app.App;
 import com.github.motoki317.traq4j.model.WebRTCAuthenticateResult;
 import com.github.motoki317.traq4j.model.WebRTCUserState;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
@@ -33,11 +33,11 @@ public class MusicServerImpl implements MusicServer {
     private final Map<UUID, AudioPlayer> waitingPlayers;
     private final Map<UUID, MusicServerAudioSender> activeSenders;
 
-    public MusicServerImpl(int port, Bot bot) throws IOException {
+    public MusicServerImpl(int port, App app) throws IOException {
         this.servePath = Pattern.compile("/serve/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})");
         this.skywayPath = Pattern.compile("/skyway/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})");
-        this.logger = bot.getLogger();
-        this.traqApi = bot.getTraqApi();
+        this.logger = app.getLogger();
+        this.traqApi = app.getTraqApi();
         this.port = port;
         this.botUserId = System.getenv("BOT_USER_ID");
         this.waitingPlayers = new HashMap<>();
@@ -86,9 +86,9 @@ public class MusicServerImpl implements MusicServer {
         UUID vcId = UUID.fromString(m.group(1));
         AudioPlayer player = this.waitingPlayers.getOrDefault(vcId, null);
         if (player == null) {
-            this.logger.log("[Music server] Cannot find player for channel id " + vcId.toString());
+            this.logger.log("[Music server] Cannot find player for channel id " + vcId);
             status(exchange, 400);
-            respond(exchange, "no waiting players for channel id " + vcId.toString() + " found");
+            respond(exchange, "no waiting players for channel id " + vcId + " found");
             flushAndClose(exchange);
             return;
         }
@@ -108,7 +108,7 @@ public class MusicServerImpl implements MusicServer {
 
         this.waitingPlayers.remove(vcId);
         this.activeSenders.put(vcId, new MusicServerAudioSender(player, out));
-        this.logger.log("[Music server] Connection established to vc id " + vcId.toString());
+        this.logger.log("[Music server] Connection established to vc id " + vcId);
     }
 
     private synchronized void serveSkyway(HttpExchange exchange) throws IOException {
@@ -139,7 +139,7 @@ public class MusicServerImpl implements MusicServer {
         }
         if (roomName == null) {
             status(exchange, 400);
-            respond(exchange, "qall not going on at channel " + vcId.toString());
+            respond(exchange, "qall not going on at channel " + vcId);
             flushAndClose(exchange);
             return;
         }
@@ -188,7 +188,7 @@ public class MusicServerImpl implements MusicServer {
         this.logger.log("[Music server] Waiting access to vc id " + channelId.toString() + "...");
 
         // connect to this next
-        return "http://localhost:" + port + "/skyway/" + channelId.toString();
+        return "http://localhost:" + port + "/skyway/" + channelId;
     }
 
     @Override

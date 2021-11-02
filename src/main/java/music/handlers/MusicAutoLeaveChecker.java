@@ -1,7 +1,7 @@
 package music.handlers;
 
 import api.TraqApi;
-import app.Bot;
+import app.App;
 import com.github.motoki317.traq4j.model.WebRTCUserState;
 import db.model.musicInterruptedChannel.MusicInterruptedChannel;
 import db.repository.base.MusicInterruptedChannelRepository;
@@ -14,17 +14,19 @@ import java.util.concurrent.TimeUnit;
 public class MusicAutoLeaveChecker {
     private final Map<String, MusicState> states;
 
+    private final String botUserId;
     private final TraqApi traqApi;
     private final Logger logger;
     private final MusicInterruptedChannelRepository interruptedGuildRepository;
 
     private final MusicPlayHandler playHandler;
 
-    public MusicAutoLeaveChecker(Bot bot, Map<String, MusicState> states, MusicPlayHandler playHandler) {
+    public MusicAutoLeaveChecker(App app, Map<String, MusicState> states, MusicPlayHandler playHandler) {
         this.states = states;
-        this.traqApi = bot.getTraqApi();
-        this.logger = bot.getLogger();
-        this.interruptedGuildRepository = bot.getDatabase().getMusicInterruptedChannelRepository();
+        this.botUserId = app.getProperties().botUserId;
+        this.traqApi = app.getTraqApi();
+        this.logger = app.getLogger();
+        this.interruptedGuildRepository = app.getDatabase().getMusicInterruptedChannelRepository();
         this.playHandler = playHandler;
     }
 
@@ -53,10 +55,10 @@ public class MusicAutoLeaveChecker {
         int listeningCount = 0;
         for (WebRTCUserState rtcState : states) {
             if (!rtcState.getChannelId().equals(vcId)) continue;
+            if (rtcState.getUserId().toString().equals(this.botUserId)) continue;
             listeningCount++;
         }
 
-        // TODO: include bot; to do so, the bot must tell the traQ server that it has joined the vc
         return listeningCount <= 0;
     }
 

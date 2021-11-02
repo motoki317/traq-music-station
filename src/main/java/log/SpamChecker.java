@@ -1,6 +1,6 @@
 package log;
 
-import com.github.motoki317.traq_bot.model.MessageCreatedEvent;
+import com.github.motoki317.traq_ws_bot.model.MessageCreatedEvent;
 
 import java.time.ZoneOffset;
 import java.util.HashMap;
@@ -22,8 +22,8 @@ public class SpamChecker {
     }
 
     public synchronized boolean isSpam(MessageCreatedEvent event) {
-        UUID userId = UUID.fromString(event.getMessage().getUser().getId());
-        long time = event.getBasePayload().getEventTime().atZone(ZoneOffset.UTC).toEpochSecond() * 1000;
+        UUID userId = UUID.fromString(event.message().user().id());
+        long time = event.basePayload().eventTime().atZone(ZoneOffset.UTC).toEpochSecond() * 1000;
         long lastMessageTime = this.messages.getOrDefault(userId, -1L);
 
         if (lastMessageTime == -1L) {

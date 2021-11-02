@@ -6,13 +6,13 @@
 
     <groupId>motoki317</groupId>
     <artifactId>traq-music-station</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 
     <properties>
-        <java.version>11</java.version>
+        <java.version>17</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
-        <junit.jupiter.version>5.7.2</junit.jupiter.version>
+        <junit.jupiter.version>5.8.1</junit.jupiter.version>
     </properties>
 
     <repositories>
@@ -31,8 +31,8 @@
             <url>https://raw.github.com/motoki317/traq4j/mvn-repo/</url>
         </repository>
         <repository>
-            <id>GitHub traq-bot4j</id>
-            <url>https://raw.github.com/motoki317/traq-bot4j/mvn-repo/</url>
+            <id>GitHub traq-ws-bot4j</id>
+            <url>https://raw.github.com/motoki317/traq-ws-bot4j/mvn-repo/</url>
         </repository>
     </repositories>
 
@@ -64,8 +64,8 @@
         </dependency>
         <dependency>
             <groupId>com.github.motoki317</groupId>
-            <artifactId>traq-bot4j</artifactId>
-            <version>3.1.0</version>
+            <artifactId>traq-ws-bot4j</artifactId>
+            <version>3.0.2</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains</groupId>

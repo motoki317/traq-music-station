@@ -1,6 +1,6 @@
 package music.handlers;
 
-import app.Bot;
+import app.App;
 import db.repository.base.MusicQueueRepository;
 import heartbeat.base.TaskBase;
 import log.Logger;
@@ -21,9 +21,9 @@ public class MusicHeartBeat implements TaskBase {
     // Check old queue cache every 60 minutes
     private int removeOldQueueCount = 0;
 
-    public MusicHeartBeat(Bot bot, MusicAutoLeaveChecker autoLeaveChecker) {
-        this.logger = bot.getLogger();
-        this.musicQueueRepository = bot.getDatabase().getMusicQueueRepository();
+    public MusicHeartBeat(App app, MusicAutoLeaveChecker autoLeaveChecker) {
+        this.logger = app.getLogger();
+        this.musicQueueRepository = app.getDatabase().getMusicQueueRepository();
         this.autoLeaveChecker = autoLeaveChecker;
     }
 

@@ -69,17 +69,51 @@ public class MusicUtils {
      * Retrieves voice channel the user is in.
      * @param traqApi traQ API
      * @param userId User UUID
-     * @return Channel UUID. null if not found.
+     * @return Qall state. null if not found.
      */
     @Nullable
-    public static UUID getVoiceChannel(@NotNull TraqApi traqApi, @NotNull UUID userId) {
+    public static QallState getVoiceChannel(@NotNull TraqApi traqApi, @NotNull UUID userId) {
         List<WebRTCUserState> states = traqApi.getWebRTCState();
         if (states == null) {
             return null;
         }
         for (WebRTCUserState state : states) {
             if (state.getUserId().equals(userId)) {
-                return state.getChannelId();
+                var sessions = state.getSessions();
+                QallState qs;
+                if (sessions.size() == 0) {
+                    qs = new QallState(state.getChannelId(), "");
+                } else {
+                    qs = new QallState(state.getChannelId(), sessions.get(0).getSessionId());
+                }
+                return qs;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Retrieves voice channel by channel ID.
+     * @param traqApi traQ API
+     * @param channelId Channel ID
+     * @return Qall state. null if not found.
+     */
+    @Nullable
+    public static QallState getVoiceChannelByID(@NotNull TraqApi traqApi, @NotNull UUID channelId) {
+        List<WebRTCUserState> states = traqApi.getWebRTCState();
+        if (states == null) {
+            return null;
+        }
+        for (WebRTCUserState state : states) {
+            if (state.getChannelId().equals(channelId)) {
+                var sessions = state.getSessions();
+                QallState qs;
+                if (sessions.size() == 0) {
+                    qs = new QallState(state.getChannelId(), "");
+                } else {
+                    qs = new QallState(state.getChannelId(), sessions.get(0).getSessionId());
+                }
+                return qs;
             }
         }
         return null;

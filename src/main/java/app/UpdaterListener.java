@@ -1,15 +1,14 @@
 package app;
 
-import com.github.motoki317.traq_bot.Responder;
-import com.github.motoki317.traq_bot.model.MessageCreatedEvent;
+import com.github.motoki317.traq_ws_bot.model.MessageCreatedEvent;
 import org.jetbrains.annotations.NotNull;
 import update.response.ResponseManager;
 
 public class UpdaterListener implements EventListener {
     private final ResponseManager responseManager;
 
-    UpdaterListener(Bot bot) {
-        this.responseManager = bot.getResponseManager();
+    UpdaterListener(App app) {
+        this.responseManager = app.getResponseManager();
     }
 
     @Override

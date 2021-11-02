@@ -1,4 +1,4 @@
-FROM maven:3.8.1-openjdk-11 AS build
+FROM maven:3.8.3-openjdk-17-slim AS build
 
 WORKDIR /usr/src/app
 
@@ -9,7 +9,7 @@ RUN --mount=type=cache,target=/root/.m2 mvn -B dependency:resolve
 COPY ./src ./src
 RUN --mount=type=cache,target=/root/.m2 mvn -B package -D skipTests
 
-FROM openjdk:11-jre-slim AS runtime
+FROM openjdk:17-slim AS runtime
 
 RUN apt-get update && \
     apt-get install -y chromium chromium-driver wget zip

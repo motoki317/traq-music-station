@@ -1,7 +1,7 @@
 package commands;
 
-import com.github.motoki317.traq_bot.Responder;
-import com.github.motoki317.traq_bot.model.MessageCreatedEvent;
+import app.Responder;
+import com.github.motoki317.traq_ws_bot.model.MessageCreatedEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -36,10 +36,10 @@ public class CommandAliases extends GenericCommand {
 
     @Override
     public @NotNull String longHelp() {
-        return String.format("Alias Command Help\n" +
-                "Syntax: %s\n" +
-                "%s" +
-                "Example: `alias music`, `alias help`", this.syntax(), this.shortHelp());
+        return String.format("""
+                Alias Command Help
+                Syntax: %s
+                %sExample: `alias music`, `alias help`""", this.syntax(), this.shortHelp());
     }
 
     @Override

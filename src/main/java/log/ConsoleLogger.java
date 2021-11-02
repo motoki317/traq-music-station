@@ -1,6 +1,6 @@
 package log;
 
-import com.github.motoki317.traq_bot.model.MessageCreatedEvent;
+import com.github.motoki317.traq_ws_bot.model.MessageCreatedEvent;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -44,15 +44,16 @@ public class ConsoleLogger implements Logger {
      * Create a user command log String. <br/>
      * Example output <br/>
      * 2018/10/01 11:02:46.430 [Channel]&lt;User&gt;: `>ping` <br/>
+     *
      * @param event Guild message received event.
      * @return Human readable user command usage log.
      */
     static String createCommandLog(MessageCreatedEvent event, boolean isSpam) {
         return String.format(
                 "[%s]<%s>: `%s`%s",
-                event.getMessage().getChannelId(),
-                event.getMessage().getUser().getName(),
-                event.getMessage().getPlainText(),
+                event.message().channelId(),
+                event.message().user().name(),
+                event.message().plainText(),
                 isSpam ? " Spam detected" : ""
         );
     }

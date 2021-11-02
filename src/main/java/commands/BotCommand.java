@@ -1,10 +1,10 @@
 package commands;
 
 import api.TraqApi;
+import app.Responder;
 import com.github.motoki317.traq4j.ApiException;
 import com.github.motoki317.traq4j.model.Message;
-import com.github.motoki317.traq_bot.Responder;
-import com.github.motoki317.traq_bot.model.MessageCreatedEvent;
+import com.github.motoki317.traq_ws_bot.model.MessageCreatedEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -103,7 +103,7 @@ public abstract class BotCommand {
     }
 
     public static void respond(TraqApi traqApi, MessageCreatedEvent event, String msg) {
-        traqApi.sendMessage(UUID.fromString(event.getMessage().getChannelId()), msg, true);
+        traqApi.sendMessage(UUID.fromString(event.message().channelId()), msg, true);
     }
 
     public static void respond(TraqApi traqApi, UUID channelId, String msg) {

@@ -1,9 +1,9 @@
 package music.handlers;
 
 import api.TraqApi;
-import app.Bot;
+import app.App;
+import app.Responder;
 import com.github.motoki317.traq4j.model.User;
-import com.github.motoki317.traq_bot.Responder;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
@@ -19,8 +19,8 @@ import static music.MusicUtils.parseLength;
 public class MusicManagementHandler {
     private final TraqApi traqApi;
 
-    public MusicManagementHandler(Bot bot) {
-        this.traqApi = bot.getTraqApi();
+    public MusicManagementHandler(App app) {
+        this.traqApi = app.getTraqApi();
     }
 
     /**

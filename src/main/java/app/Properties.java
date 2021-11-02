@@ -14,8 +14,7 @@ public class Properties {
 
     public final Date lastReboot;
 
-    final String botAccessToken;
-    public final String botDiscordId;
+    public final String botUserId;
 
     public final Map<Integer, Long> logChannelId;
 
@@ -33,8 +32,7 @@ public class Properties {
 
         this.lastReboot = new Date();
 
-        this.botAccessToken = getEnv("DISCORD_ACCESS_TOKEN");
-        this.botDiscordId = getEnv("BOT_DISCORD_ID");
+        this.botUserId = getEnv("BOT_USER_ID");
 
         this.logChannelId = new HashMap<>();
 

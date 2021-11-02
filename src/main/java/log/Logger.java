@@ -1,6 +1,6 @@
 package log;
 
-import com.github.motoki317.traq_bot.model.MessageCreatedEvent;
+import com.github.motoki317.traq_ws_bot.model.MessageCreatedEvent;
 
 public interface Logger {
     void log(CharSequence message);

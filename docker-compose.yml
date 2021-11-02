@@ -10,7 +10,6 @@ services:
       MYSQL_DATABASE: music
       MYSQL_USER: music
       MYSQL_PASSWORD: password
-      BOT_PORT: 25565
       MUSIC_PORT: 25566
       BOT_USER_ID: ${BOT_USER_ID}
       VERIFICATION_TOKEN: ${VERIFICATION_TOKEN}

@@ -1,9 +1,9 @@
 package music;
 
 import api.TraqApi;
-import app.Bot;
-import com.github.motoki317.traq_bot.Responder;
-import com.github.motoki317.traq_bot.model.MessageCreatedEvent;
+import app.App;
+import app.Responder;
+import com.github.motoki317.traq_ws_bot.model.MessageCreatedEvent;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers;
@@ -41,13 +41,13 @@ public class Music extends ChannelCommand {
     private final TraqApi traqApi;
     private final Logger logger;
 
-    public Music(Bot bot) {
+    public Music(App app) {
         this.commands = new HashMap<>();
-        this.traqApi = bot.getTraqApi();
-        this.logger = bot.getLogger();
-        this.playHandler = new MusicPlayHandler(bot, states, playerManager);
-        this.managementHandler = new MusicManagementHandler(bot);
-        this.settingHandler = new MusicSettingHandler(bot, states);
+        this.traqApi = app.getTraqApi();
+        this.logger = app.getLogger();
+        this.playHandler = new MusicPlayHandler(app, states, playerManager);
+        this.managementHandler = new MusicManagementHandler(app);
+        this.settingHandler = new MusicSettingHandler(app, states);
 
         this.registerCommands();
 
@@ -56,8 +56,8 @@ public class Music extends ChannelCommand {
 
         // Register music related heartbeat
         this.logger.debug("Starting music heartbeat...");
-        MusicAutoLeaveChecker autoLeaveChecker = new MusicAutoLeaveChecker(bot, states, this.playHandler);
-        this.heartbeat = new HeartBeatTask(bot.getLogger(), new MusicHeartBeat(bot, autoLeaveChecker));
+        MusicAutoLeaveChecker autoLeaveChecker = new MusicAutoLeaveChecker(app, states, this.playHandler);
+        this.heartbeat = new HeartBeatTask(app.getLogger(), new MusicHeartBeat(app, autoLeaveChecker));
         this.heartbeat.start();
 
         // Save all players on shutdown to be re-joined above
@@ -75,7 +75,7 @@ public class Music extends ChannelCommand {
      * @return Channel UUID. null if not found.
      */
     @Nullable
-    private UUID getVoiceChannel(@NotNull UUID userId) {
+    private QallState getVoiceChannel(@NotNull UUID userId) {
         return MusicUtils.getVoiceChannel(this.traqApi, userId);
     }
 
@@ -86,21 +86,21 @@ public class Music extends ChannelCommand {
 
     private MusicSubCommandHandler requireMusicState(MusicSubCommandRequireMusicState handle) {
         return (event, res, args) -> {
-            UUID vcId = Music.this.getVoiceChannel(UUID.fromString(event.getMessage().getUser().getId()));
-            if (vcId == null) {
+            QallState qs = Music.this.getVoiceChannel(UUID.fromString(event.message().user().id()));
+            if (qs == null) {
                 respond(res, "You do not seem to be in a voice channel...");
                 return;
             }
             MusicState state;
             synchronized (states) {
-                state = states.getOrDefault(vcId.toString(), null);
+                state = states.getOrDefault(qs.channelId().toString(), null);
             }
             if (state == null) {
                 respond(res, "This channel doesn't seem to have a music player set up.");
                 return;
             }
 
-            handle.handle(event, res, args, vcId, state);
+            handle.handle(event, res, args, qs.channelId(), state);
         };
     }
 

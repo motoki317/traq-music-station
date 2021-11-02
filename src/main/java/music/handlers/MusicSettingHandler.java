@@ -1,13 +1,14 @@
 package music.handlers;
 
 import api.TraqApi;
-import app.Bot;
-import com.github.motoki317.traq_bot.Responder;
-import com.github.motoki317.traq_bot.model.MessageCreatedEvent;
+import app.App;
+import app.Responder;
+import com.github.motoki317.traq_ws_bot.model.MessageCreatedEvent;
 import db.model.musicSetting.MusicSetting;
 import db.repository.base.MusicSettingRepository;
 import music.MusicState;
 import music.MusicUtils;
+import music.QallState;
 import music.RepeatState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,10 +29,10 @@ public class MusicSettingHandler {
     private final TraqApi traqApi;
     private final MusicSettingRepository musicSettingRepository;
 
-    public MusicSettingHandler(Bot bot, Map<String, MusicState> states) {
+    public MusicSettingHandler(App app, Map<String, MusicState> states) {
         this.states = states;
-        this.traqApi = bot.getTraqApi();
-        this.musicSettingRepository = bot.getDatabase().getMusicSettingRepository();
+        this.traqApi = app.getTraqApi();
+        this.musicSettingRepository = app.getDatabase().getMusicSettingRepository();
     }
 
     /**
@@ -40,7 +41,7 @@ public class MusicSettingHandler {
      * @return Channel UUID. null if not found.
      */
     @Nullable
-    private UUID getVoiceChannel(@NotNull UUID userId) {
+    private QallState getVoiceChannel(@NotNull UUID userId) {
         return MusicUtils.getVoiceChannel(this.traqApi, userId);
     }
 
@@ -83,13 +84,15 @@ public class MusicSettingHandler {
 
     private MusicSubCommandHandler retrieveMusicState(MusicSettingSubCommandHandler next) {
         return (event, res, args) -> {
-            UUID userId = UUID.fromString(event.getMessage().getUser().getId());
-            UUID vcId = getVoiceChannel(userId);
+            UUID userId = UUID.fromString(event.message().user().id());
+            QallState qs = getVoiceChannel(userId);
+            UUID vcId;
             MusicState state = null;
-            if (vcId != null) {
-                state = getMusicState(vcId);
+            if (qs != null) {
+                vcId = qs.channelId();
+                state = getMusicState(qs.channelId());
             } else {
-                vcId = UUID.fromString(event.getMessage().getChannelId());
+                vcId = UUID.fromString(event.message().channelId());
             }
             next.handle(event, res, args, vcId, state);
         };
@@ -98,11 +101,12 @@ public class MusicSettingHandler {
     private final static int MAX_VOLUME = 150;
 
     private static String volumeHelp(int currentVolume) {
-        return String.format("Volume Setting\n" +
-                "Adjusts the player's volume.\n" +
-                "Current: %s%%\n" +
-                "Update: `m volume <percentage>`\n" +
-                "e.g. `m volume 50`",
+        return String.format("""
+                        Volume Setting
+                        Adjusts the player's volume.
+                        Current: %s%%
+                        Update: `m volume <percentage>`
+                        e.g. `m volume 50`""",
                 currentVolume);
     }
 
@@ -156,11 +160,12 @@ public class MusicSettingHandler {
     }
 
     private static String repeatHelp(RepeatState current) {
-        return String.format("Repeat Setting\n" +
-                "Sets the repeat mode.\n" +
-                "Current: %s\n" +
-                "Update: `m repeat <mode>`\n" +
-                "Available Modes: %s",
+        return String.format("""
+                        Repeat Setting
+                        Sets the repeat mode.
+                        Current: %s
+                        Update: `m repeat <mode>`
+                        Available Modes: %s""",
                 current.name(),
                 Arrays.stream(RepeatState.values())
                         .map(r -> String.format("**%s** : %s", r.name(), r.getDescription()))
@@ -202,12 +207,13 @@ public class MusicSettingHandler {
     }
 
     private String settingHelp(MusicSetting current) {
-        return String.format("Music Other Settings\n" +
-                "Use the command written below each option to set options.\n" +
-                "\n" +
-                "Show Now Playing Messages\n" +
-                "Current: **%s**\n" +
-                "`m setting shownp <ON/OFF>`",
+        return String.format("""
+                        Music Other Settings
+                        Use the command written below each option to set options.
+
+                        Show Now Playing Messages
+                        Current: **%s**
+                        `m setting shownp <ON/OFF>`""",
                 current.isShowNp() ? "ON" : "OFF");
     }
 
@@ -227,7 +233,7 @@ public class MusicSettingHandler {
             return;
         }
 
-        if ("shownp".equals(args[2].toLowerCase())) {
+        if ("shownp".equalsIgnoreCase(args[2])) {
             handleShowNP(res, setting, args);
             return;
         }
@@ -236,11 +242,12 @@ public class MusicSettingHandler {
     }
 
     private static String showNPHelp(boolean current) {
-        return String.format("Music Other Settings - Show Now Playing Messages\n" +
-                "If enabled, it will send a message of the song info on each start.\n" +
-                "Default: ON\n" +
-                "Current: %s\n" +
-                "Update: `m setting shownp <ON/OFF>`", current ? "ON" : "OFF");
+        return String.format("""
+                Music Other Settings - Show Now Playing Messages
+                If enabled, it will send a message of the song info on each start.
+                Default: ON
+                Current: %s
+                Update: `m setting shownp <ON/OFF>`""", current ? "ON" : "OFF");
     }
 
     /**
@@ -257,15 +264,12 @@ public class MusicSettingHandler {
 
         boolean newValue;
         switch (args[3].toUpperCase()) {
-            case "ON":
-                newValue = true;
-                break;
-            case "OFF":
-                newValue = false;
-                break;
-            default:
+            case "ON" -> newValue = true;
+            case "OFF" -> newValue = false;
+            default -> {
                 respond(res, "Input either `ON` OR `OFF` for the new value!");
                 return;
+            }
         }
 
         setting.setShowNp(newValue);

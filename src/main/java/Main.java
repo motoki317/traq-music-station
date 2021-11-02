@@ -1,4 +1,4 @@
-import app.App;
+import app.AppImpl;
 import app.Properties;
 import update.UpdaterFactoryImpl;
 
@@ -6,11 +6,11 @@ import java.io.IOException;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-        App app = new App(new Properties(), new UpdaterFactoryImpl());
-        Thread appThread = new Thread(app);
+        AppImpl appImpl = new AppImpl(new Properties(), new UpdaterFactoryImpl());
+        Thread appThread = new Thread(appImpl);
         appThread.setName("bot app");
         appThread.start();
 
-        Runtime.getRuntime().addShutdownHook(new Thread(app::onShutDown));
+        Runtime.getRuntime().addShutdownHook(new Thread(appImpl::onShutDown));
     }
 }
