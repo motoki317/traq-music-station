@@ -100,10 +100,6 @@ public class AppImpl implements Runnable, App {
 
         this.database = new DatabaseMariaImpl(this.logger);
 
-        this.addEventListener(new CommandListener(this));
-        this.addEventListener(new UpdaterListener(this));
-        this.logger.debug("Added event listeners.");
-
         this.bot = new Bot(
                 System.getenv("ACCESS_TOKEN"),
                 System.getenv("TRAQ_API_BASE_PATH"),
@@ -128,6 +124,10 @@ public class AppImpl implements Runnable, App {
                 System.out.printf("Received ERROR event from traQ: %s\n", m));
 
         this.messageApi = new MessageApi(this.bot.getClient());
+
+        this.addEventListener(new CommandListener(this));
+        this.addEventListener(new UpdaterListener(this));
+        this.logger.debug("Added event listeners.");
 
         this.logger.log("Bot load complete!");
     }
