@@ -9,6 +9,7 @@ import org.openqa.selenium.logging.LogType;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import utils.StoppableThread;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -17,16 +18,8 @@ import java.util.logging.Level;
 import static org.openqa.selenium.support.ui.ExpectedConditions.presenceOfElementLocated;
 
 public class SkywayApiImpl implements SkywayApi {
-    private static class Player {
-        private final ChromeDriver driver;
-        private final StoppableThread player;
-        private final StoppableThread log;
-
-        public Player(ChromeDriver driver, StoppableThread player, StoppableThread log) {
-            this.driver = driver;
-            this.player = player;
-            this.log = log;
-        }
+    private record Player(ChromeDriver driver, StoppableThread player,
+                          StoppableThread log) {
     }
 
     private final Map<UUID, Player> players;
@@ -46,7 +39,7 @@ public class SkywayApiImpl implements SkywayApi {
                 .addArguments("--disable-dev-shm-usage")
                 .setHeadless(true);
         ChromeDriver driver = new ChromeDriver(options);
-        WebDriverWait wait = new WebDriverWait(driver, 60);
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(60));
         driver.setLogLevel(Level.ALL);
         driver.get(audioOrigin);
 
@@ -58,7 +51,7 @@ public class SkywayApiImpl implements SkywayApi {
                 var title = wait.until(presenceOfElementLocated(By.id("title")));
                 title.click();
 
-                WebDriverWait waitConnected = new WebDriverWait(driver, Integer.MAX_VALUE, 250);
+                WebDriverWait waitConnected = new WebDriverWait(driver, Duration.ofHours(1), Duration.ofMillis(250));
                 // Wait until the Skyway API connected to the room
                 waitConnected.until(presenceOfElementLocated(By.id("connected-flag")));
                 var playButton = wait.until(presenceOfElementLocated(By.id("button-play")));
@@ -102,7 +95,7 @@ public class SkywayApiImpl implements SkywayApi {
 
         // Press disconnect button via chrome driver
         var driver = player.driver;
-        WebDriverWait wait = new WebDriverWait(driver, 60);
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(60));
         var disconnectButton = wait.until(presenceOfElementLocated(By.id("button-disconnect")));
         disconnectButton.click();
         driver.close();
